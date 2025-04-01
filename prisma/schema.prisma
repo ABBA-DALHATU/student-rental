@@ -1,0 +1,140 @@
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  NONE
+  STUDENT
+  LANDLORD
+}
+
+enum PropertyStatus {
+  DRAFT
+  ACTIVE
+  RENTED
+  ARCHIVED
+}
+
+enum InquiryStatus {
+  PENDING
+  RESPONDED
+  DECLINED
+}
+
+enum ViewingStatus {
+  REQUESTED
+  CONFIRMED
+  DECLINED
+  COMPLETED
+}
+
+model User {
+  id              String     @id @default(uuid())
+  clerkId         String     @unique
+  fullName        String
+  email           String     @unique
+  phone Int?
+  role            Role       @default(NONE)
+  properties      Property[] @relation("UserProperties")
+  inquiries       Inquiry[]  @relation("UserInquiries")
+  viewings        Viewing[]  @relation("UserViewings")
+  notifications   Notification[] @relation("UserNotifications")
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  messagesSent    Message[]  @relation("SenderMessages")
+  messagesReceived Message[] @relation("ReceiverMessages")
+    savedProperties SavedProperty[] @relation("StudentSavedProperties")
+}
+
+model Property {
+  id               String       @id @default(uuid())
+  title            String
+  description      String
+  imageUrl         String
+  price            Float
+  bedrooms         Int
+  bathrooms        Int          @default(1)
+  location         String
+  distanceToCampus String?
+  amenities        String[]     // Array of amenities
+  availableFrom    DateTime?    // When the property becomes available
+  status           PropertyStatus @default(DRAFT)
+  landlord         User         @relation("UserProperties", fields: [landlordId], references: [id])
+  landlordId       String
+  messages         Message[]    @relation("PropertyMessages")
+  inquiries        Inquiry[]    @relation("PropertyInquiries")
+  viewings         Viewing[]    @relation("PropertyViewings")
+  notifications    Notification[] @relation("PropertyNotifications")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  savedProperties  SavedProperty[] @relation("PropertySavedProperties")
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  property    Property @relation("PropertyMessages", fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId  String
+  sender      User     @relation("SenderMessages", fields: [senderId], references: [id])
+  senderId    String
+  receiver    User     @relation("ReceiverMessages", fields: [receiverId], references: [id])
+  receiverId  String
+  content     String
+  createdAt   DateTime @default(now())
+}
+
+model Inquiry {
+  id          String         @id @default(uuid())
+  property    Property       @relation("PropertyInquiries", fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId  String
+  student     User           @relation("UserInquiries", fields: [studentId], references: [id])
+  studentId   String
+  message     String
+  status      InquiryStatus  @default(PENDING)
+  response    String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model Viewing {
+  id          String         @id @default(uuid())
+  property    Property       @relation("PropertyViewings", fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId  String
+  student     User           @relation("UserViewings", fields: [studentId], references: [id])
+  studentId   String
+  scheduledAt DateTime
+  status      ViewingStatus  @default(REQUESTED)
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model Notification {
+  id                  String   @id @default(uuid())
+  userId              String
+  user                User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  message             String
+  isRead              Boolean  @default(false)
+  createdAt           DateTime @default(now())
+
+  // Optional: If notifications are linked to a project
+  propertyId          String?  
+  property            Property? @relation("PropertyNotifications", fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+
+model SavedProperty {
+  id         String   @id @default(uuid())
+  student    User     @relation("StudentSavedProperties", fields: [studentId], references: [id], onDelete: Cascade)
+  studentId  String
+  property   Property @relation("PropertySavedProperties", fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  createdAt  DateTime @default(now())
+
+  @@unique([studentId, propertyId])
+}

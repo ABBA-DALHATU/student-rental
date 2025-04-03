@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-// import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -22,6 +21,8 @@ import {
   Send,
   MessageSquare,
   Eye,
+  LockIcon,
+  DollarSign,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -38,6 +39,8 @@ import {
   sendInquiry,
   scheduleViewing,
 } from "@/actions";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ButtonLoading } from "@/components/global/PleaseWaitButton";
 
 export default function PropertyDetailPage({
   params,
@@ -54,6 +57,13 @@ export default function PropertyDetailPage({
   const [isViewingDialogOpen, setIsViewingDialogOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [viewingDate, setViewingDate] = useState("");
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
+  // Loading states
+  const [isSavingProperty, setIsSavingProperty] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [isSchedulingViewing, setIsSchedulingViewing] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Fetch property data
   useEffect(() => {
@@ -80,6 +90,7 @@ export default function PropertyDetailPage({
 
   const toggleSaveProperty = async () => {
     try {
+      setIsSavingProperty(true);
       await toggleSavedProperty(userId, propertyId);
       setIsSaved(!isSaved);
       toast({
@@ -95,6 +106,8 @@ export default function PropertyDetailPage({
         description: "Failed to update saved property. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSavingProperty(false);
     }
   };
 
@@ -110,6 +123,7 @@ export default function PropertyDetailPage({
     if (!message.trim() || !property) return;
 
     try {
+      setIsSendingMessage(true);
       await sendInquiry(property.id, userId, message);
       toast({
         title: "Message sent",
@@ -124,6 +138,8 @@ export default function PropertyDetailPage({
         description: "Failed to send message. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSendingMessage(false);
     }
   };
 
@@ -131,6 +147,7 @@ export default function PropertyDetailPage({
     if (!viewingDate || !property) return;
 
     try {
+      setIsSchedulingViewing(true);
       const scheduledAt = new Date(viewingDate);
       await scheduleViewing(property.id, userId, scheduledAt);
       toast({
@@ -146,29 +163,50 @@ export default function PropertyDetailPage({
         description: "Failed to schedule viewing. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSchedulingViewing(false);
+    }
+  };
+
+  const handlePayment = async () => {
+    try {
+      setIsProcessingPayment(true);
+      // Simulate payment processing
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      toast({
+        title: "Payment Successful",
+        description: "Your deposit has been processed successfully.",
+      });
+      setIsPaymentModalOpen(false);
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast({
+        title: "Payment Failed",
+        description:
+          "There was an error processing your payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
   if (isLoading) {
     return (
-      // <DashboardLayout userRole="STUDENT" userId={userId}>
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
-      // </DashboardLayout>
     );
   }
 
   if (!property) {
     return (
-      // <DashboardLayout userRole="STUDENT" userId={userId}>
       <div className="flex flex-col items-center justify-center h-64">
         <h3 className="text-xl font-semibold mb-2">Property not found</h3>
         <Link href={`/dashboard/${userId}/properties`}>
           <Button variant="outline">Back to properties</Button>
         </Link>
       </div>
-      // </DashboardLayout>
     );
   }
 
@@ -215,17 +253,21 @@ export default function PropertyDetailPage({
               <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold">{property.title}</h1>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={toggleSaveProperty}
-                  >
-                    <Heart
-                      className={`h-4 w-4 ${
-                        isSaved ? "fill-primary text-primary" : ""
-                      }`}
-                    />
-                  </Button>
+                  {isSavingProperty ? (
+                    <ButtonLoading />
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={toggleSaveProperty}
+                    >
+                      <Heart
+                        className={`h-4 w-4 ${
+                          isSaved ? "fill-primary text-primary" : ""
+                        }`}
+                      />
+                    </Button>
+                  )}
                   <Button variant="outline" size="icon" onClick={shareProperty}>
                     <Share className="h-4 w-4" />
                   </Button>
@@ -354,7 +396,6 @@ export default function PropertyDetailPage({
                 </div>
               </CardContent>
             </Card>
-
             <Card>
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold mb-4">
@@ -369,6 +410,24 @@ export default function PropertyDetailPage({
                 >
                   <Calendar className="h-4 w-4 mr-2" />
                   Schedule Viewing
+                </Button>
+              </CardContent>
+            </Card>
+            <Card className="mt-4">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4">
+                  Secure Your Accommodation
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Pay a deposit to secure this property before someone else
+                  does.
+                </p>
+                <Button
+                  className="w-full bg-gradient-to-r from-primary-600 to-primary-500"
+                  onClick={() => setIsPaymentModalOpen(true)}
+                >
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Pay Now
                 </Button>
               </CardContent>
             </Card>
@@ -413,10 +472,14 @@ export default function PropertyDetailPage({
             >
               Cancel
             </Button>
-            <Button onClick={sendMessage}>
-              <Send className="h-4 w-4 mr-2" />
-              Send Message
-            </Button>
+            {isSendingMessage ? (
+              <ButtonLoading />
+            ) : (
+              <Button onClick={sendMessage}>
+                <Send className="h-4 w-4 mr-2" />
+                Send Message
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -456,10 +519,115 @@ export default function PropertyDetailPage({
             >
               Cancel
             </Button>
-            <Button onClick={scheduleViewingRequest}>
-              <Eye className="h-4 w-4 mr-2" />
-              Request Viewing
+            {isSchedulingViewing ? (
+              <ButtonLoading />
+            ) : (
+              <Button onClick={scheduleViewingRequest}>
+                <Eye className="h-4 w-4 mr-2" />
+                Request Viewing
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Gateway Modal */}
+      <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Payment Gateway</DialogTitle>
+            <DialogDescription>
+              Secure your accommodation by paying the deposit for{" "}
+              {property.title}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="bg-muted/30 p-4 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Deposit Amount</span>
+                <span className="font-bold text-lg">${property.price}</span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                This amount will be deducted from your first month's rent
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="card-number">Card Number</Label>
+                <Input
+                  id="card-number"
+                  placeholder="1234 5678 9012 3456"
+                  className="font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="expiry">Expiry Date</Label>
+                  <Input
+                    id="expiry"
+                    placeholder="MM/YY"
+                    className="font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cvv">CVV</Label>
+                  <Input
+                    id="cvv"
+                    placeholder="123"
+                    className="font-mono"
+                    type="password"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="name">Name on Card</Label>
+                <Input id="name" placeholder="John Doe" />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="billing-address">Billing Address</Label>
+                <Input
+                  id="billing-address"
+                  placeholder="123 Main St, City, Country"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox id="save-card" />
+              <label
+                htmlFor="save-card"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Save card for future payments
+              </label>
+            </div>
+
+            <div className="text-xs text-muted-foreground">
+              <LockIcon className="h-3 w-3 inline-block mr-1" />
+              Your payment information is secure and encrypted
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsPaymentModalOpen(false)}
+            >
+              Cancel
             </Button>
+            {isProcessingPayment ? (
+              <ButtonLoading />
+            ) : (
+              <Button
+                className="bg-gradient-to-r from-primary-600 to-primary-500"
+                onClick={handlePayment}
+              >
+                Pay ${property.price}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

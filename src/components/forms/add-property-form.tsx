@@ -30,6 +30,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { DialogFooter } from "@/components/ui/dialog";
 import ImageUpload from "../global/UploadZone_Uploadthing";
+import { ButtonLoading } from "../global/PleaseWaitButton";
 
 // Form schema for adding a new property
 const propertyFormSchema = z.object({
@@ -88,6 +89,7 @@ interface AddPropertyFormProps {
   onCancel: () => void;
   initialValues?: PropertyFormValues; // Add initialValues prop
   isEditing?: boolean; // Add isEditing prop
+  isLoading?: boolean;
 }
 
 export function AddPropertyForm({
@@ -95,6 +97,7 @@ export function AddPropertyForm({
   onCancel,
   initialValues,
   isEditing = false,
+  isLoading,
 }: AddPropertyFormProps) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   // Form for adding a new property
@@ -148,7 +151,11 @@ export function AddPropertyForm({
             <FormItem>
               <FormLabel>Property Title</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Modern Studio Apartment" {...field} />
+                <Input
+                  placeholder="e.g., Modern Studio Apartment"
+                  {...field}
+                  disabled={isLoading}
+                />
               </FormControl>
               <FormDescription>
                 A catchy title will attract more students.
@@ -166,7 +173,12 @@ export function AddPropertyForm({
               <FormItem>
                 <FormLabel>Monthly Rent ($)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 650" {...field} />
+                  <Input
+                    type="number"
+                    placeholder="e.g., 650"
+                    {...field}
+                    disabled={isLoading}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -180,7 +192,12 @@ export function AddPropertyForm({
               <FormItem>
                 <FormLabel>Bedrooms</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 2" {...field} />
+                  <Input
+                    type="number"
+                    placeholder="e.g., 2"
+                    {...field}
+                    disabled={isLoading}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -196,7 +213,12 @@ export function AddPropertyForm({
               <FormItem>
                 <FormLabel>Bathrooms</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 1" {...field} />
+                  <Input
+                    type="number"
+                    placeholder="e.g., 1"
+                    {...field}
+                    disabled={isLoading}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -210,7 +232,7 @@ export function AddPropertyForm({
               <FormItem>
                 <FormLabel>Available From</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input type="date" {...field} disabled={isLoading} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -228,6 +250,7 @@ export function AddPropertyForm({
                 <Input
                   placeholder="e.g., 123 University St, Apt 1"
                   {...field}
+                  disabled={isLoading}
                 />
               </FormControl>
               <FormDescription>Full address of the property.</FormDescription>
@@ -275,6 +298,7 @@ export function AddPropertyForm({
                   placeholder="Describe your property in detail..."
                   className="min-h-[100px]"
                   {...field}
+                  disabled={isLoading}
                 />
               </FormControl>
               <FormDescription>
@@ -343,7 +367,11 @@ export function AddPropertyForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Property Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={isLoading}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select property status" />
@@ -371,7 +399,11 @@ export function AddPropertyForm({
             <FormItem>
               <FormLabel>Property Image</FormLabel>
               <FormControl>
-                <ImageUpload onChange={field.onChange} value={field.value} />
+                <ImageUpload
+                  onChange={field.onChange}
+                  value={field.value}
+                  // disabled={isLoading}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -382,7 +414,14 @@ export function AddPropertyForm({
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit">{isEditing ? "Update" : "Add"} Property</Button>
+
+          {isLoading ? (
+            <ButtonLoading />
+          ) : (
+            <Button type="submit">
+              {isEditing ? "Update" : "Add"} Property
+            </Button>
+          )}
         </DialogFooter>
       </form>
     </Form>

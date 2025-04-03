@@ -683,7 +683,7 @@ function PropertyCard({
         <div className="relative w-full h-full">
           {/* Property Image */}
           <img
-            src={property.image || "/placeholder.svg"}
+            src={property.imageUrl || "/placeholder.svg"}
             alt={property.title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />

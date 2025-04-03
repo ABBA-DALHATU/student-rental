@@ -18,6 +18,7 @@ import {
   BookOpen,
   Calendar,
 } from "lucide-react";
+import { useClerk } from "@clerk/nextjs";
 
 import {
   Sidebar,
@@ -49,6 +50,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { useEffect, useState } from "react";
+import { currentUser } from "@clerk/nextjs/server";
+import { getUserByClerkId } from "@/actions";
 
 interface AppSidebarProps {
   userId: string;
@@ -56,10 +60,23 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ userId, userRole = "STUDENT" }: AppSidebarProps) {
+  const clerk = useClerk();
   const pathname = usePathname();
+  const [name, setName] = useState("...");
+
+  useEffect(() => {
+    const fetch = async () => {
+      const res = await getUserByClerkId();
+      const n = res?.data?.fullName;
+
+      setName(n || "...");
+    };
+
+    fetch();
+  }, []);
 
   const studentNavItems = [
-    { href: `/dashboard/${userId}/feed`, label: "Dashboard", icon: Home },
+    { href: `/dashboard/${userId}/feed`, label: "For You", icon: Home },
     {
       href: `/dashboard/${userId}/properties`,
       label: "Browse Properties",
@@ -74,9 +91,8 @@ export function AppSidebar({ userId, userRole = "STUDENT" }: AppSidebarProps) {
       href: `/dashboard/${userId}/messages`,
       label: "Messages",
       icon: MessageSquare,
-      badge: 3,
+      // badge: 3,
     },
-    { href: `/dashboard/${userId}/profile`, label: "Profile", icon: User },
   ];
 
   const landlordNavItems = [
@@ -86,13 +102,12 @@ export function AppSidebar({ userId, userRole = "STUDENT" }: AppSidebarProps) {
       label: "My Properties",
       icon: Building,
     },
-    {
-      href: `/dashboard/${userId}/messages`,
-      label: "Messages",
-      icon: MessageSquare,
-      badge: 5,
-    },
-    { href: `/dashboard/${userId}/profile`, label: "Profile", icon: User },
+    // {
+    //   href: `/dashboard/${userId}/messages`,
+    //   label: "Messages",
+    //   icon: MessageSquare,
+    //   badge: 5,
+    // },
   ];
 
   const navItems = userRole === "LANDLORD" ? landlordNavItems : studentNavItems;
@@ -104,12 +119,12 @@ export function AppSidebar({ userId, userRole = "STUDENT" }: AppSidebarProps) {
           <Building className="h-6 w-6 text-primary" />
           <span className="text-lg font-bold">StudentNest</span>
         </div>
-        <div className="px-2 pb-2">
+        {/* <div className="px-2 pb-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <SidebarInput placeholder="Search..." className="pl-8" />
           </div>
-        </div>
+        </div> */}
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-2">
@@ -129,14 +144,14 @@ export function AppSidebar({ userId, userRole = "STUDENT" }: AppSidebarProps) {
                       <span>{item.label}</span>
                     </Link>
                   </SidebarMenuButton>
-                  {item.badge && (
+                  {/* {item.badge && (
                     <Badge
                       variant="secondary"
                       className="absolute right-2 top-2 bg-primary text-primary-foreground"
                     >
                       {item.badge}
                     </Badge>
-                  )}
+                  )} */}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -245,9 +260,7 @@ export function AppSidebar({ userId, userRole = "STUDENT" }: AppSidebarProps) {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col items-start text-xs">
-                      <span className="font-medium">
-                        {userRole === "LANDLORD" ? "Jane Doe" : "Alex Johnson"}
-                      </span>
+                      <span className="font-medium">{name}</span>
                       <span className="text-sidebar-foreground/70">
                         {userRole}
                       </span>
@@ -261,7 +274,7 @@ export function AppSidebar({ userId, userRole = "STUDENT" }: AppSidebarProps) {
                 align="start"
                 className="w-[--radix-popper-anchor-width]"
               >
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                {/* <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href={`/dashboard/${userId}/profile`}>
@@ -275,9 +288,9 @@ export function AppSidebar({ userId, userRole = "STUDENT" }: AppSidebarProps) {
                     <span>Settings</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator /> */}
                 <DropdownMenuItem asChild>
-                  <Link href="/">
+                  <Link href="#" onClick={() => clerk.signOut()}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </Link>

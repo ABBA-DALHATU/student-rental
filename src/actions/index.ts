@@ -823,6 +823,45 @@ export const getLandlordDashboardData = async (userId: string) => {
       })
     );
 
+    console.log({
+      stats: {
+        totalProperties,
+        activeProperties,
+        rentedProperties,
+        draftProperties,
+        totalInquiries: inquiries,
+        pendingInquiries,
+        totalViewings: viewings,
+        upcomingViewings,
+        occupancyRate,
+        averageResponseTime: "2.5 hours", // You would calculate this based on actual response times
+        monthlyIncome,
+      },
+      properties: propertiesWithCounts,
+      notifications: notifications.map((n) => ({
+        id: n.id,
+        message: n.message,
+        isRead: n.isRead,
+        createdAt: n.createdAt.toISOString(),
+        propertyId: n.propertyId,
+        propertyTitle: n.property?.title,
+        type: "inquiry", // You would determine this based on your notification types
+      })),
+      upcomingViewings: upcomingViewingsDetails.map((v) => ({
+        id: v.id,
+        propertyId: v.property.id,
+        propertyTitle: v.property.title,
+        propertyImage: v.property.imageUrl || "/placeholder.svg",
+        studentId: v.student.id,
+        studentName: v.student.fullName,
+        scheduledAt: v.scheduledAt.toISOString(),
+        status: v.status,
+      })),
+      recentActivity,
+      inquiryTrend,
+      propertyDistribution,
+    });
+
     return {
       stats: {
         totalProperties,

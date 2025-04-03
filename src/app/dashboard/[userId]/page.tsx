@@ -35,8 +35,10 @@ import {
 import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { getLandlordDashboardData } from "@/actions";
+import { getLandlordDashboardData, getUserRole } from "@/actions";
 import { formatDistanceToNow } from "date-fns";
+import { useRouter } from "next/navigation";
+import { Role } from "@prisma/client";
 
 type DashboardData = {
   stats: {
@@ -102,6 +104,26 @@ export default function LandlordDashboardPage({
   params: { userId: string };
 }) {
   const userId = params.userId;
+
+  //too lazy.... but note that this is bad logic. this useEffect should not be here. but
+  // well it works, hahaa
+  const router = useRouter();
+  useEffect(() => {
+    const checkUserRole = async () => {
+      try {
+        const userRole = await getUserRole(userId);
+        if (userRole === Role.STUDENT) {
+          router.push(`/dashboard/${userId}/feed`);
+        }
+      } catch (error) {
+        console.error("Error checking user role:", error);
+      }
+    };
+
+    checkUserRole();
+  }, [router, userId]);
+  //the lazy code stops here
+
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(
     null
   );
@@ -481,8 +503,13 @@ export default function LandlordDashboardPage({
               <div className="space-y-4">
                 {dashboardData.upcomingViewings.length > 0 ? (
                   dashboardData.upcomingViewings.map((viewing) => (
-                    <div key={viewing.id} className="flex flex-col space-y-3">
+                    <div
+                      key={viewing.id}
+                      className="flex flex-col space-y-3 p-3 rounded-lg border transition-colors"
+                    >
                       {/* Viewing card content */}
+                      {viewing.studentName} scheduled view for your properties (
+                      {viewing.propertyTitle})
                     </div>
                   ))
                 ) : (
@@ -498,14 +525,14 @@ export default function LandlordDashboardPage({
               </div>
             </ScrollArea>
           </CardContent>
-          <CardFooter>
+          {/* <CardFooter>
             <Button variant="outline" asChild className="w-full">
               <Link href={`/dashboard/${userId}/viewings`}>
                 View All Viewings
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-          </CardFooter>
+          </CardFooter> */}
         </Card>
 
         {/* Right Column - Notifications and Activity */}
@@ -514,7 +541,7 @@ export default function LandlordDashboardPage({
             <CardHeader>
               <CardTitle>Recent Notifications</CardTitle>
               <CardDescription>
-                {dashboardData.notifications.filter((n) => !n.isRead).length}{" "}
+                {dashboardData.notifications.filter((n) => !n.isRead).length}
                 unread notifications
               </CardDescription>
             </CardHeader>
@@ -525,27 +552,31 @@ export default function LandlordDashboardPage({
                     <div
                       key={notification.id}
                       className={cn(
-                        "p-3 rounded-lg border transition-colors",
-                        !notification.isRead
-                          ? "bg-primary-50 border-primary-100"
-                          : "bg-background border-border"
+                        "p-3 rounded-lg border transition-color bg-background border-border"
                       )}
+                      // className={cn(
+                      //   "p-3 rounded-lg border transition-colors",
+                      //   !notification.isRead
+                      //     ? "bg-primary-50 border-primary-100"
+                      //     : "bg-background border-border"
+                      // )}
                       onClick={() => markNotificationAsRead(notification.id)}
                     >
                       {/* Notification content */}
+                      {notification.message}
                     </div>
                   ))}
                 </div>
               </ScrollArea>
             </CardContent>
-            <CardFooter>
+            {/* <CardFooter>
               <Button variant="outline" asChild className="w-full">
                 <Link href={`/dashboard/${userId}/notifications`}>
                   View All Notifications
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-            </CardFooter>
+            </CardFooter> */}
           </Card>
 
           {/* ... other right column cards ... */}

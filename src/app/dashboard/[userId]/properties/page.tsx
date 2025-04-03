@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-// import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -56,6 +55,7 @@ import {
   scheduleViewing as schedulePropertyViewing,
 } from "@/actions";
 import { createNotification } from "@/actions/notifications";
+import { ButtonLoading } from "@/components/global/PleaseWaitButton";
 
 type ViewMode = "grid" | "list" | "large";
 
@@ -81,6 +81,11 @@ export default function PropertiesPage({
   const [message, setMessage] = useState("");
   const [viewingDate, setViewingDate] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+
+  // Loading states
+  const [isSavingProperty, setIsSavingProperty] = useState<string | null>(null);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [isSchedulingViewing, setIsSchedulingViewing] = useState(false);
 
   // Fetch properties on component mount
   useEffect(() => {
@@ -193,6 +198,7 @@ export default function PropertiesPage({
 
   const toggleSaveProperty = async (id: string) => {
     try {
+      setIsSavingProperty(id);
       await toggleSavedProperty(userId, id);
       setProperties((prev) =>
         prev.map((property) =>
@@ -220,6 +226,8 @@ export default function PropertiesPage({
         description: "Failed to update saved property. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSavingProperty(null);
     }
   };
 
@@ -237,6 +245,7 @@ export default function PropertiesPage({
     if (!message.trim() || !selectedProperty) return;
 
     try {
+      setIsSendingMessage(true);
       await sendInquiry(selectedProperty.id, userId, message);
       toast({
         title: "Message sent",
@@ -251,6 +260,8 @@ export default function PropertiesPage({
         description: "Failed to send message. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSendingMessage(false);
     }
   };
 
@@ -258,6 +269,7 @@ export default function PropertiesPage({
     if (!viewingDate || !selectedProperty) return;
 
     try {
+      setIsSchedulingViewing(true);
       const scheduledAt = new Date(viewingDate);
       await schedulePropertyViewing(selectedProperty.id, userId, scheduledAt);
       await createNotification(
@@ -282,16 +294,16 @@ export default function PropertiesPage({
         description: "Failed to schedule viewing. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSchedulingViewing(false);
     }
   };
 
   if (isLoading) {
     return (
-      // <DashboardLayout userRole="STUDENT" userId={userId}>
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
-      // </DashboardLayout>
     );
   }
 
@@ -545,6 +557,7 @@ export default function PropertiesPage({
                 property={property}
                 userId={userId}
                 viewMode={viewMode}
+                isSaving={isSavingProperty === property.id}
                 onSave={() => toggleSaveProperty(property.id)}
                 onContact={() => handleContactLandlord(property)}
                 onSchedule={() => handleScheduleViewing(property)}
@@ -605,7 +618,11 @@ export default function PropertiesPage({
             >
               Cancel
             </Button>
-            <Button onClick={sendMessage}>Send Message</Button>
+            {isSendingMessage ? (
+              <ButtonLoading />
+            ) : (
+              <Button onClick={sendMessage}>Send Message</Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -647,10 +664,14 @@ export default function PropertiesPage({
             >
               Cancel
             </Button>
-            <Button onClick={scheduleViewing}>
-              <Eye className="h-4 w-4 mr-2" />
-              Request Viewing
-            </Button>
+            {isSchedulingViewing ? (
+              <ButtonLoading />
+            ) : (
+              <Button onClick={scheduleViewing}>
+                <Eye className="h-4 w-4 mr-2" />
+                Request Viewing
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -663,6 +684,7 @@ interface PropertyCardProps {
   property: any;
   userId: string;
   viewMode: ViewMode;
+  isSaving: boolean;
   onSave: () => void;
   onContact: () => void;
   onSchedule: () => void;
@@ -672,6 +694,7 @@ function PropertyCard({
   property,
   userId,
   viewMode,
+  isSaving,
   onSave,
   onContact,
   onSchedule,
@@ -695,24 +718,30 @@ function PropertyCard({
           />
 
           {/* Save Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-3 right-3 z-10 bg-black/30 backdrop-blur-sm hover:bg-black/50 text-white rounded-full"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onSave();
-            }}
-          >
-            <Heart
-              className={`h-5 w-5 ${
-                property.saved
-                  ? "fill-primary text-primary"
-                  : "fill-transparent"
-              }`}
-            />
-          </Button>
+          {isSaving ? (
+            <div className="absolute top-3 right-3 z-10">
+              <ButtonLoading />
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-3 right-3 z-10 bg-black/30 backdrop-blur-sm hover:bg-black/50 text-white rounded-full"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onSave();
+              }}
+            >
+              <Heart
+                className={`h-5 w-5 ${
+                  property.saved
+                    ? "fill-primary text-primary"
+                    : "fill-transparent"
+                }`}
+              />
+            </Button>
+          )}
 
           {/* Content Overlay */}
           <div

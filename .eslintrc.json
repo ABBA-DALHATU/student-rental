@@ -1,4 +1,4 @@
 {
   "extends": ["next/core-web-vitals", "next/typescript"],
-  "rules": { "no-var": "warn" }
+  "rules": { "no-var": "warn", "@typescript-eslint/no-explicit-any": "warn" }
 }

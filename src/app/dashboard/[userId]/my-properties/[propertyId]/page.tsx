@@ -56,6 +56,8 @@ import {
   PropertyFormValues,
 } from "@/components/forms/add-property-form";
 
+import { ButtonLoading } from "@/components/global/PleaseWaitButton";
+
 export default function PropertyDetailPage({
   params,
 }: {
@@ -72,6 +74,16 @@ export default function PropertyDetailPage({
   const [isResponseDialogOpen, setIsResponseDialogOpen] = useState(false);
   const [responseMessage, setResponseMessage] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isResponding, setIsResponding] = useState(false);
+  const [isConfirmingViewing, setIsConfirmingViewing] = useState<string | null>(
+    null
+  );
+  const [isDecliningViewing, setIsDecliningViewing] = useState<string | null>(
+    null
+  );
+  const [isEditingProperty, setIsEditingProperty] = useState(false);
+
   // Fetch property data
   useEffect(() => {
     const fetchProperty = async () => {
@@ -97,6 +109,7 @@ export default function PropertyDetailPage({
 
   const handleEditProperty = async (values: PropertyFormValues) => {
     try {
+      setIsEditingProperty(true);
       const res = await upsertProperty(values, userId, propertyId);
 
       if (res) {
@@ -117,12 +130,14 @@ export default function PropertyDetailPage({
         variant: "destructive",
       });
     } finally {
+      setIsEditingProperty(false);
       setIsEditDialogOpen(false);
     }
   };
 
   const handleDeleteProperty = async () => {
     try {
+      setIsDeleting(true);
       await deleteProperty(propertyId, userId);
       toast({
         title: "Property deleted",
@@ -137,6 +152,7 @@ export default function PropertyDetailPage({
         variant: "destructive",
       });
     } finally {
+      setIsDeleting(false);
       setIsDeleteDialogOpen(false);
     }
   };
@@ -160,6 +176,7 @@ export default function PropertyDetailPage({
     if (!selectedInquiry) return;
 
     try {
+      setIsResponding(true);
       await respondToInquiry(selectedInquiry.id, responseMessage);
       toast({
         title: "Response sent",
@@ -180,6 +197,8 @@ export default function PropertyDetailPage({
         description: "Failed to send response. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsResponding(false);
     }
   };
 
@@ -188,6 +207,12 @@ export default function PropertyDetailPage({
     confirm: boolean
   ) => {
     try {
+      if (confirm) {
+        setIsConfirmingViewing(viewingId);
+      } else {
+        setIsDecliningViewing(viewingId);
+      }
+
       await updateViewingStatus(viewingId, confirm ? "CONFIRMED" : "DECLINED");
       toast({
         title: confirm ? "Viewing confirmed" : "Viewing declined",
@@ -205,6 +230,9 @@ export default function PropertyDetailPage({
         description: "Failed to update viewing status.",
         variant: "destructive",
       });
+    } finally {
+      setIsConfirmingViewing(null);
+      setIsDecliningViewing(null);
     }
   };
 
@@ -518,20 +546,24 @@ export default function PropertyDetailPage({
                       )}
 
                       <div className="mt-4 flex justify-end">
-                        <Button
-                          variant={
-                            inquiry.status === "RESPONDED"
-                              ? "outline"
-                              : "default"
-                          }
-                          className="gap-2"
-                          onClick={() => handleInquiryResponseClick(inquiry)}
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                          {inquiry.status === "RESPONDED"
-                            ? "Edit Response"
-                            : "Respond"}
-                        </Button>
+                        {isResponding && selectedInquiry?.id === inquiry.id ? (
+                          <ButtonLoading />
+                        ) : (
+                          <Button
+                            variant={
+                              inquiry.status === "RESPONDED"
+                                ? "outline"
+                                : "default"
+                            }
+                            className="gap-2"
+                            onClick={() => handleInquiryResponseClick(inquiry)}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                            {inquiry.status === "RESPONDED"
+                              ? "Edit Response"
+                              : "Respond"}
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -595,25 +627,33 @@ export default function PropertyDetailPage({
                       </div>
                       {viewing.status === "REQUESTED" && (
                         <div className="mt-4 flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            className="gap-2"
-                            onClick={() =>
-                              handleViewingConfirmation(viewing.id, false)
-                            }
-                          >
-                            <XCircle className="h-4 w-4" />
-                            Decline
-                          </Button>
-                          <Button
-                            className="gap-2"
-                            onClick={() =>
-                              handleViewingConfirmation(viewing.id, true)
-                            }
-                          >
-                            <CheckCircle2 className="h-4 w-4" />
-                            Confirm
-                          </Button>
+                          {isDecliningViewing === viewing.id ? (
+                            <ButtonLoading />
+                          ) : (
+                            <Button
+                              variant="outline"
+                              className="gap-2"
+                              onClick={() =>
+                                handleViewingConfirmation(viewing.id, false)
+                              }
+                            >
+                              <XCircle className="h-4 w-4" />
+                              Decline
+                            </Button>
+                          )}
+                          {isConfirmingViewing === viewing.id ? (
+                            <ButtonLoading />
+                          ) : (
+                            <Button
+                              className="gap-2"
+                              onClick={() =>
+                                handleViewingConfirmation(viewing.id, true)
+                              }
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                              Confirm
+                            </Button>
+                          )}
                         </div>
                       )}
                       {viewing.status === "CONFIRMED" && (
@@ -660,12 +700,16 @@ export default function PropertyDetailPage({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteProperty}
-              className="bg-destructive text-destructive-foreground"
-            >
-              Delete
-            </AlertDialogAction>
+            {isDeleting ? (
+              <ButtonLoading />
+            ) : (
+              <AlertDialogAction
+                onClick={handleDeleteProperty}
+                className="bg-destructive text-destructive-foreground"
+              >
+                Delete
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -736,12 +780,16 @@ export default function PropertyDetailPage({
             >
               Cancel
             </Button>
-            <Button onClick={handleSendResponse} className="gap-2">
-              <Send className="h-4 w-4" />
-              {selectedInquiry?.status === "RESPONDED"
-                ? "Update Response"
-                : "Send Response"}
-            </Button>
+            {isResponding ? (
+              <ButtonLoading />
+            ) : (
+              <Button onClick={handleSendResponse} className="gap-2">
+                <Send className="h-4 w-4" />
+                {selectedInquiry?.status === "RESPONDED"
+                  ? "Update Response"
+                  : "Send Response"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -772,6 +820,7 @@ export default function PropertyDetailPage({
                 imageUrl: property.images[0] || "",
               }}
               isEditing={true}
+              isLoading={isEditingProperty}
             />
           )}
         </DialogContent>

@@ -64,6 +64,7 @@ import {
   AddPropertyForm,
   PropertyFormValues,
 } from "@/components/forms/add-property-form";
+import { ButtonLoading } from "@/components/global/PleaseWaitButton";
 
 export default function MyPropertiesPage({
   params,
@@ -86,6 +87,11 @@ export default function MyPropertiesPage({
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [currentProperty, setCurrentProperty] = useState<any>(null);
+
+  // Loading states
+  const [isAddingProperty, setIsAddingProperty] = useState(false);
+  const [isDeletingProperty, setIsDeletingProperty] = useState(false);
+  const [isUpdatingProperty, setIsUpdatingProperty] = useState(false);
 
   // Fetch properties on component mount
   useEffect(() => {
@@ -198,6 +204,7 @@ export default function MyPropertiesPage({
 
   const handleAddProperty = async (values: PropertyFormValues) => {
     try {
+      setIsAddingProperty(true);
       const res = await upsertProperty(values, userId);
 
       if (res) {
@@ -218,6 +225,7 @@ export default function MyPropertiesPage({
         variant: "destructive",
       });
     } finally {
+      setIsAddingProperty(false);
       setIsAddPropertyOpen(false);
     }
   };
@@ -230,6 +238,7 @@ export default function MyPropertiesPage({
     try {
       if (!currentProperty) return;
 
+      setIsUpdatingProperty(true);
       const res = await upsertProperty(values, userId, currentProperty.id);
 
       if (res) {
@@ -250,6 +259,7 @@ export default function MyPropertiesPage({
         variant: "destructive",
       });
     } finally {
+      setIsUpdatingProperty(false);
       setIsEditDialogOpen(false);
       setCurrentProperty(null);
     }
@@ -259,6 +269,7 @@ export default function MyPropertiesPage({
     if (!propertyToDelete) return;
 
     try {
+      setIsDeletingProperty(true);
       await deleteProperty(propertyToDelete);
 
       // Fetch the updated list of properties
@@ -277,6 +288,7 @@ export default function MyPropertiesPage({
         variant: "destructive",
       });
     } finally {
+      setIsDeletingProperty(false);
       setPropertyToDelete(null);
     }
   };
@@ -318,6 +330,7 @@ export default function MyPropertiesPage({
               <AddPropertyForm
                 onSubmit={handleAddProperty}
                 onCancel={() => setIsAddPropertyOpen(false)}
+                isLoading={isAddingProperty}
               />
             </DialogContent>
           </Dialog>
@@ -642,12 +655,16 @@ export default function MyPropertiesPage({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground"
-            >
-              Delete
-            </AlertDialogAction>
+            {isDeletingProperty ? (
+              <ButtonLoading />
+            ) : (
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-destructive text-destructive-foreground"
+              >
+                Delete
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -680,6 +697,7 @@ export default function MyPropertiesPage({
                 imageUrl: currentProperty.image || "",
               }}
               isEditing={true}
+              isLoading={isUpdatingProperty}
             />
           )}
         </DialogContent>
